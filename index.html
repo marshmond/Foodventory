@@ -529,7 +529,7 @@ body {
 
 <input type="file" id="import-file" accept=".json" style="display:none" onchange="handleImport(event)">
 
-<script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/umd/index.min.js"></script>
 <script>
 // ═══════════ STATE ═══════════
 const DEFAULT_LOCATIONS = ['Pantry','Fridge','Freezer','Spice rack','Wine/bar'];
@@ -711,6 +711,8 @@ function deleteCurrentItem() {
 }
 
 // ═══════════ BARCODE SCAN ═══════════
+let zxingReader = null;
+
 function openScan() {
   fillLocationSelect('scan-location');
   document.getElementById('scan-status').textContent='';
@@ -723,35 +725,61 @@ function openScan() {
 }
 
 function closeScan() {
-  try { Quagga.stop(); } catch(e) {}
-  document.getElementById('scan-video').style.display='none';
+  stopCamera();
   closeSheet('sheet-scan');
 }
 
-function startCamera() {
+function stopCamera() {
+  if (zxingReader) {
+    try { zxingReader.reset(); } catch(e) {}
+    zxingReader = null;
+  }
   const video = document.getElementById('scan-video');
-  video.style.display='block';
-  document.querySelector('#scan-area .scan-placeholder').style.display='none';
-  document.getElementById('scan-status').textContent='Scanning…';
-  Quagga.init({
-    inputStream: { type:'LiveStream', target:video, constraints:{ facingMode:'environment' } },
-    decoder: { readers:['ean_reader','upc_reader','code_128_reader'] }
-  }, err => {
-    if (err) { document.getElementById('scan-status').textContent='Camera error: '+err.message; return; }
-    Quagga.start();
-  });
-  Quagga.onDetected(async res => {
-    const code = res.codeResult.code;
-    Quagga.stop(); video.style.display='none';
-    document.querySelector('#scan-area .scan-placeholder').style.display='flex';
-    document.getElementById('scan-status').textContent='Looking up '+code+'…';
-    const name = await lookupBarcode(code);
-    document.getElementById('scan-name').value = name||code;
-    document.getElementById('scan-form').style.display='block';
-    document.getElementById('scan-save-btn').style.display='flex';
-    document.getElementById('scan-start-btn').style.display='none';
-    document.getElementById('scan-status').textContent = name ? 'Found: '+name : 'Not found — edit name below.';
-  });
+  if (video.srcObject) {
+    video.srcObject.getTracks().forEach(t => t.stop());
+    video.srcObject = null;
+  }
+  video.style.display = 'none';
+  document.querySelector('#scan-area .scan-placeholder').style.display = 'flex';
+}
+
+async function startCamera() {
+  const video = document.getElementById('scan-video');
+  const status = document.getElementById('scan-status');
+
+  if (!window.ZXing) { status.textContent = 'Scanner library not loaded — check your connection.'; return; }
+
+  video.style.display = 'block';
+  document.querySelector('#scan-area .scan-placeholder').style.display = 'none';
+  status.textContent = 'Starting camera…';
+
+  try {
+    zxingReader = new ZXing.BrowserMultiFormatReader();
+    const devices = await ZXing.BrowserCodeReader.listVideoInputDevices();
+    // prefer rear camera
+    const device = devices.find(d => /back|rear|environment/i.test(d.label)) || devices[devices.length - 1];
+    const deviceId = device ? device.deviceId : undefined;
+
+    status.textContent = 'Point camera at a barcode…';
+
+    await zxingReader.decodeFromVideoDevice(deviceId, video, async (result, err) => {
+      if (result) {
+        const code = result.getText();
+        stopCamera();
+        status.textContent = 'Found barcode — looking up product…';
+        const name = await lookupBarcode(code);
+        document.getElementById('scan-name').value = name || code;
+        document.getElementById('scan-form').style.display = 'block';
+        document.getElementById('scan-save-btn').style.display = 'flex';
+        document.getElementById('scan-start-btn').style.display = 'none';
+        status.textContent = name ? '✓ Found: ' + name : 'Product not found — edit the name below.';
+      }
+      // err is thrown continuously while no barcode detected — ignore those
+    });
+  } catch(e) {
+    status.textContent = 'Camera error: ' + (e.message || e);
+    stopCamera();
+  }
 }
 
 async function lookupBarcode(code) {
