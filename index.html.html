@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f1117">
+<title>Pantry</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.9.0/dist/tabler-icons.min.css">
+<style>
+:root {
+  --bg: #0f1117;
+  --bg2: #181c27;
+  --bg3: #1e2333;
+  --bg4: #252b3d;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --text: #f0f2f7;
+  --text2: #8892a8;
+  --text3: #5a6175;
+  --accent: #4ade80;
+  --accent-dim: rgba(74,222,128,0.12);
+  --accent-text: #166534;
+  --warn: #fbbf24;
+  --warn-dim: rgba(251,191,36,0.12);
+  --danger: #f87171;
+  --danger-dim: rgba(248,113,113,0.12);
+  --info: #60a5fa;
+  --info-dim: rgba(96,165,250,0.12);
+  --amber: #fb923c;
+  --amber-dim: rgba(251,146,60,0.12);
+  --purple: #a78bfa;
+  --purple-dim: rgba(167,139,250,0.12);
+  --pink: #f472b6;
+  --pink-dim: rgba(244,114,182,0.12);
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+  --nav-h: 72px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  overflow-x: hidden;
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* LAYOUT */
+.app { display: flex; flex-direction: column; min-height: 100dvh; }
+
+.screen { display: none; flex-direction: column; flex: 1; padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 8px); overflow-y: auto; }
+.screen.active { display: flex; }
+
+/* TOP BAR */
+.topbar { padding: 16px 20px 12px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--bg); z-index: 10; border-bottom: 0.5px solid var(--border); }
+.topbar-title { font-size: 22px; font-weight: 600; letter-spacing: -0.5px; }
+.topbar-actions { display: flex; gap: 8px; }
+.icon-btn { width: 40px; height: 40px; border-radius: var(--r-sm); border: 1px solid var(--border2); background: var(--bg3); color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all .15s; font-size: 18px; }
+.icon-btn:active { transform: scale(0.93); background: var(--bg4); }
+.icon-btn.accent { background: var(--accent); border-color: var(--accent); color: #0f1117; }
+.icon-btn.accent:active { opacity: .85; }
+
+/* BOTTOM NAV */
+.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: calc(var(--nav-h) + var(--safe-bottom)); padding-bottom: var(--safe-bottom); background: var(--bg2); border-top: 0.5px solid var(--border2); display: flex; z-index: 100; }
+.nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: pointer; color: var(--text3); transition: color .15s; padding-top: 8px; border: none; background: transparent; }
+.nav-item.active { color: var(--accent); }
+.nav-item i { font-size: 22px; }
+.nav-item span { font-size: 10px; font-weight: 500; letter-spacing: .03em; text-transform: uppercase; }
+
+/* CARDS */
+.card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--r-lg); padding: 16px; margin: 0 16px 10px; }
+.card-sm { padding: 12px 14px; border-radius: var(--r-md); }
+
+/* STATS ROW */
+.stats-scroll { display: flex; gap: 10px; padding: 12px 16px; overflow-x: auto; scrollbar-width: none; }
+.stats-scroll::-webkit-scrollbar { display: none; }
+.stat-pill { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--r-md); padding: 12px 16px; min-width: 100px; flex-shrink: 0; }
+.stat-pill .sn { font-size: 26px; font-weight: 600; letter-spacing: -1px; line-height: 1; }
+.stat-pill .sl { font-size: 11px; color: var(--text2); margin-top: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: .04em; }
+
+/* LOCATION PILLS */
+.loc-scroll { display: flex; gap: 8px; padding: 0 16px 12px; overflow-x: auto; scrollbar-width: none; }
+.loc-scroll::-webkit-scrollbar { display: none; }
+.loc-pill { padding: 8px 16px; border-radius: 99px; border: 1px solid var(--border2); background: var(--bg2); color: var(--text2); font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: all .15s; flex-shrink: 0; }
+.loc-pill.active { background: var(--accent); border-color: var(--accent); color: #0f1117; }
+
+/* SEARCH */
+.search-wrap { padding: 0 16px 12px; }
+.search-wrap input { width: 100%; height: 44px; border-radius: var(--r-md); border: 1px solid var(--border2); background: var(--bg2); color: var(--text); font-family: inherit; font-size: 15px; padding: 0 14px 0 40px; }
+.search-wrap input::placeholder { color: var(--text3); }
+.search-wrap input:focus { outline: none; border-color: rgba(74,222,128,0.4); }
+.search-icon { position: absolute; left: 28px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 18px; pointer-events: none; }
+.search-inner { position: relative; }
+
+/* ITEM LIST */
+.item-list { display: flex; flex-direction: column; gap: 8px; padding: 0 16px; }
+
+.item-row { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--r-md); padding: 14px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all .15s; }
+.item-row:active { background: var(--bg3); transform: scale(0.99); }
+.item-row .item-icon { width: 40px; height: 40px; border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.item-row .item-body { flex: 1; min-width: 0; }
+.item-row .item-name { font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item-row .item-sub { font-size: 12px; color: var(--text2); margin-top: 2px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.item-row .item-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+
+/* BADGES */
+.badge { font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 99px; white-space: nowrap; }
+.badge-pantry { background: rgba(74,222,128,0.15); color: #4ade80; }
+.badge-fridge { background: var(--info-dim); color: var(--info); }
+.badge-freezer { background: var(--purple-dim); color: var(--purple); }
+.badge-spice { background: var(--amber-dim); color: var(--amber); }
+.badge-wine { background: var(--pink-dim); color: var(--pink); }
+.badge-other { background: var(--bg4); color: var(--text2); }
+.badge-exp-ok { background: rgba(74,222,128,0.1); color: var(--accent); }
+.badge-exp-soon { background: var(--warn-dim); color: var(--warn); }
+.badge-exp-bad { background: var(--danger-dim); color: var(--danger); }
+.badge-have { background: rgba(74,222,128,0.15); color: #4ade80; }
+.badge-need { background: var(--danger-dim); color: var(--danger); }
+
+/* EMPTY STATE */
+.empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 48px 32px; color: var(--text3); text-align: center; }
+.empty i { font-size: 48px; }
+.empty p { font-size: 14px; line-height: 1.5; }
+
+/* SHEETS (modals from bottom) */
+.sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200; display: none; align-items: flex-end; }
+.sheet-overlay.open { display: flex; }
+.sheet { background: var(--bg2); border-radius: var(--r-xl) var(--r-xl) 0 0; width: 100%; max-height: 92dvh; display: flex; flex-direction: column; animation: slideUp .25s ease; }
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.sheet-handle { width: 36px; height: 4px; background: var(--bg4); border-radius: 99px; margin: 12px auto 0; flex-shrink: 0; }
+.sheet-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; flex-shrink: 0; }
+.sheet-header h2 { font-size: 18px; font-weight: 600; }
+.sheet-body { overflow-y: auto; padding: 0 20px 24px; flex: 1; }
+.sheet-footer { padding: 12px 20px; padding-bottom: calc(12px + var(--safe-bottom)); border-top: 0.5px solid var(--border); display: flex; gap: 10px; flex-shrink: 0; }
+
+/* FORM ELEMENTS */
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: 12px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 7px; }
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%; height: 48px; border-radius: var(--r-md); border: 1px solid var(--border2);
+  background: var(--bg3); color: var(--text); font-family: inherit; font-size: 15px;
+  padding: 0 14px;
+}
+.form-group textarea { height: 100px; padding: 12px 14px; resize: none; }
+.form-group select { appearance: none; }
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: rgba(74,222,128,0.5); }
+.form-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.toggle-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; }
+.toggle-row label { font-size: 14px; color: var(--text); flex: 1; cursor: pointer; }
+.toggle-row input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--accent); cursor: pointer; }
+
+/* BUTTONS */
+.btn { height: 50px; border-radius: var(--r-md); border: 1px solid var(--border2); background: var(--bg3); color: var(--text); font-family: inherit; font-size: 15px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all .15s; flex: 1; }
+.btn:active { transform: scale(0.97); }
+.btn i { font-size: 18px; }
+.btn-accent { background: var(--accent); border-color: var(--accent); color: #0f1117; }
+.btn-accent:active { opacity: .85; }
+.btn-danger { color: var(--danger); border-color: rgba(248,113,113,0.3); }
+
+/* FAB */
+.fab { position: fixed; bottom: calc(var(--nav-h) + var(--safe-bottom) + 16px); right: 20px; width: 56px; height: 56px; border-radius: 99px; background: var(--accent); color: #0f1117; border: none; display: flex; align-items: center; justify-content: center; font-size: 26px; cursor: pointer; box-shadow: 0 4px 24px rgba(74,222,128,0.3); z-index: 90; transition: all .15s; }
+.fab:active { transform: scale(0.93); }
+
+/* REVIEW BANNER */
+.review-banner { margin: 12px 16px; background: var(--warn-dim); border: 1px solid rgba(251,191,36,0.25); border-radius: var(--r-md); padding: 12px 14px; display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--warn); }
+.review-banner i { font-size: 20px; flex-shrink: 0; }
+.review-banner button { margin-left: auto; padding: 6px 12px; border-radius: var(--r-sm); background: var(--warn); color: #0f1117; border: none; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+
+/* DRIVE BAR */
+.drive-bar { margin: 8px 16px; border-radius: var(--r-sm); padding: 8px 12px; background: var(--bg2); border: 0.5px solid var(--border); display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text2); }
+.drive-dot { width: 7px; height: 7px; border-radius: 99px; flex-shrink: 0; }
+.dot-ok { background: var(--accent); }
+.dot-sync { background: var(--warn); }
+.dot-err { background: var(--danger); }
+
+/* GROCERY ITEMS */
+.grocery-row { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--r-md); padding: 14px; display: flex; align-items: center; gap: 12px; transition: all .15s; }
+.grocery-row.checked { opacity: 0.4; }
+.grocery-row input[type=checkbox] { width: 22px; height: 22px; flex-shrink: 0; accent-color: var(--accent); cursor: pointer; }
+.grocery-row .gr-name { flex: 1; font-size: 15px; }
+.grocery-row.checked .gr-name { text-decoration: line-through; }
+.grocery-row .gr-amt { font-size: 12px; color: var(--text2); font-family: 'DM Mono', monospace; }
+
+/* CONFIRM LIST */
+.confirm-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 0.5px solid var(--border); }
+.confirm-row:last-child { border-bottom: none; }
+.confirm-row input[type=checkbox] { width: 22px; height: 22px; flex-shrink: 0; accent-color: var(--accent); cursor: pointer; }
+.confirm-row label { flex: 1; font-size: 14px; cursor: pointer; }
+.confirm-row .cr-amt { font-size: 12px; color: var(--text2); font-family: 'DM Mono', monospace; }
+
+/* AI LOADER */
+.ai-loader { display: flex; align-items: center; gap: 10px; padding: 16px; color: var(--text2); font-size: 14px; }
+.dots span { display: inline-block; width: 6px; height: 6px; border-radius: 99px; background: var(--accent); animation: dot .9s ease-in-out infinite; margin: 0 2px; }
+.dots span:nth-child(2) { animation-delay: .15s; }
+.dots span:nth-child(3) { animation-delay: .3s; }
+@keyframes dot { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+
+/* SETTINGS */
+.settings-section { padding: 0 16px 10px; }
+.settings-section h3 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text3); padding: 16px 0 8px; }
+.settings-row { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--r-md); padding: 14px 16px; display: flex; align-items: center; gap: 12px; margin-bottom: 8px; font-size: 14px; }
+.settings-row i { font-size: 20px; color: var(--text2); }
+.settings-row .sr-label { flex: 1; }
+.settings-row .sr-val { color: var(--text2); font-size: 13px; }
+
+/* SWIPE DELETE HINT */
+.swipe-hint { font-size: 11px; color: var(--text3); text-align: center; padding: 4px 0 8px; }
+
+/* SECTION LABEL */
+.section-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text3); padding: 8px 16px 6px; }
+
+/* INPUT WITH ICON */
+.input-icon-wrap { position: relative; }
+.input-icon-wrap input { padding-left: 42px; }
+.input-icon-wrap i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 18px; color: var(--text3); pointer-events: none; }
+
+/* LOC ICON COLORS */
+.ico-pantry { background: rgba(74,222,128,0.12); color: #4ade80; }
+.ico-fridge { background: var(--info-dim); color: var(--info); }
+.ico-freezer { background: var(--purple-dim); color: var(--purple); }
+.ico-spice { background: var(--amber-dim); color: var(--amber); }
+.ico-wine { background: var(--pink-dim); color: var(--pink); }
+.ico-other { background: var(--bg4); color: var(--text2); }
+
+/* RECIPE TEXTAREA */
+.recipe-input { width: 100%; border-radius: var(--r-md); border: 1px solid var(--border2); background: var(--bg3); color: var(--text); font-family: inherit; font-size: 14px; padding: 14px; resize: none; min-height: 130px; }
+.recipe-input:focus { outline: none; border-color: rgba(74,222,128,0.5); }
+
+/* MANUAL ADD ROW */
+.manual-add-row { display: flex; gap: 10px; padding: 0 16px 10px; }
+.manual-add-row input { flex: 1; height: 48px; border-radius: var(--r-md); border: 1px solid var(--border2); background: var(--bg2); color: var(--text); font-family: inherit; font-size: 15px; padding: 0 14px; }
+.manual-add-row input:focus { outline: none; border-color: rgba(74,222,128,0.5); }
+.manual-add-row button { width: 48px; height: 48px; border-radius: var(--r-md); background: var(--accent); color: #0f1117; border: none; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+/* SCAN AREA */
+.scan-area { background: var(--bg3); border-radius: var(--r-md); overflow: hidden; aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center; margin-bottom: 14px; position: relative; }
+.scan-area video { width: 100%; height: 100%; object-fit: cover; }
+.scan-placeholder { display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--text3); }
+.scan-placeholder i { font-size: 52px; }
+.scan-placeholder p { font-size: 13px; }
+
+/* LOCATION EDIT ROW */
+.loc-edit-row { background: var(--bg3); border-radius: var(--r-sm); padding: 10px 12px; display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 14px; }
+.loc-edit-row .badge { margin-right: auto; }
+.loc-count { font-size: 12px; color: var(--text3); }
+
+/* TOAST */
+.toast { position: fixed; bottom: calc(var(--nav-h) + var(--safe-bottom) + 80px); left: 50%; transform: translateX(-50%) translateY(20px); background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--r-md); padding: 10px 18px; font-size: 13px; color: var(--text); white-space: nowrap; z-index: 300; opacity: 0; transition: all .25s; pointer-events: none; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* REVIEW ITEM ROW */
+.review-item { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 0.5px solid var(--border); }
+.review-item:last-child { border-bottom: none; }
+.review-item .ri-body { flex: 1; min-width: 0; }
+.review-item .ri-name { font-size: 14px; font-weight: 500; }
+.review-item .ri-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+.review-item .ri-actions { display: flex; gap: 6px; }
+.mini-btn { height: 34px; padding: 0 12px; border-radius: var(--r-sm); font-size: 12px; font-weight: 500; border: 1px solid var(--border2); background: var(--bg4); color: var(--text); cursor: pointer; }
+.mini-btn.ok { border-color: rgba(74,222,128,0.3); color: var(--accent); }
+.mini-btn.del { border-color: rgba(248,113,113,0.3); color: var(--danger); }
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<div class="app">
+
+<!-- ═══ INVENTORY SCREEN ═══ -->
+<div class="screen active" id="screen-inventory">
+  <div class="topbar">
+    <div class="topbar-title">Pantry</div>
+    <div class="topbar-actions">
+      <button class="icon-btn" onclick="openScan()" aria-label="Scan barcode"><i class="ti ti-barcode"></i></button>
+    </div>
+  </div>
+
+  <div id="drive-bar-el" class="drive-bar" style="display:none">
+    <div class="drive-dot dot-err" id="drive-dot"></div>
+    <span id="drive-text">Not synced</span>
+    <i class="ti ti-brand-google-drive" style="margin-left:auto;font-size:16px"></i>
+  </div>
+
+  <div id="review-banner-el" style="display:none">
+    <div class="review-banner">
+      <i class="ti ti-alert-triangle"></i>
+      <span>Freshness check due</span>
+      <button onclick="openReview()">Review</button>
+    </div>
+  </div>
+
+  <div class="stats-scroll" id="stats-row"></div>
+
+  <div class="loc-scroll" id="loc-tabs"></div>
+
+  <div class="search-wrap">
+    <div class="search-inner">
+      <i class="ti ti-search search-icon"></i>
+      <input type="text" placeholder="Search items…" id="search-input" oninput="renderItems()" autocomplete="off" autocorrect="off" spellcheck="false">
+    </div>
+  </div>
+
+  <div class="item-list" id="item-list"></div>
+  <div style="height:16px"></div>
+</div>
+
+<!-- ═══ GROCERY SCREEN ═══ -->
+<div class="screen" id="screen-grocery">
+  <div class="topbar">
+    <div class="topbar-title">Grocery list</div>
+    <div class="topbar-actions">
+      <button class="icon-btn" onclick="clearCheckedGrocery()" aria-label="Clear checked"><i class="ti ti-checks"></i></button>
+    </div>
+  </div>
+
+  <div style="padding:12px 16px">
+    <textarea class="recipe-input" id="recipe-input" placeholder="Paste a recipe here — the AI will pull out the ingredients and check what you already have…"></textarea>
+    <button class="btn btn-accent" style="margin-top:8px;width:100%" onclick="parseRecipe()">
+      <i class="ti ti-sparkles"></i> Parse recipe with AI
+    </button>
+  </div>
+
+  <div id="ai-loader" style="display:none" class="ai-loader">
+    <div class="dots"><span></span><span></span><span></span></div>
+    Reading your recipe…
+  </div>
+
+  <div id="confirm-section" style="display:none;padding:0 16px 16px">
+    <div class="section-label" style="padding:0 0 8px">Confirm ingredients</div>
+    <div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r-md);padding:0 14px;margin-bottom:12px">
+      <div id="confirm-list"></div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-accent" onclick="confirmIngredients()"><i class="ti ti-check"></i> Add selected</button>
+      <button class="btn" onclick="cancelConfirm()">Cancel</button>
+    </div>
+  </div>
+
+  <div class="section-label" id="grocery-section-label" style="display:none">Shopping list</div>
+
+  <div class="manual-add-row">
+    <input type="text" id="manual-grocery-input" placeholder="Add item manually…" autocomplete="off" onkeydown="if(event.key==='Enter')addManualGrocery()">
+    <button onclick="addManualGrocery()" aria-label="Add item"><i class="ti ti-plus"></i></button>
+  </div>
+
+  <div class="item-list" id="grocery-list"></div>
+  <div style="height:16px"></div>
+</div>
+
+<!-- ═══ SETTINGS SCREEN ═══ -->
+<div class="screen" id="screen-settings">
+  <div class="topbar">
+    <div class="topbar-title">Settings</div>
+  </div>
+
+  <div class="settings-section">
+    <h3>Google Drive</h3>
+    <div id="drive-settings-ui"></div>
+
+    <h3>Storage locations</h3>
+    <div id="location-settings-list"></div>
+    <div style="display:flex;gap:10px;margin-top:4px">
+      <input type="text" id="new-loc-input" placeholder="New location name…" style="flex:1;height:44px;border-radius:var(--r-sm);border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:inherit;font-size:14px;padding:0 12px">
+      <button onclick="addCustomLocation()" style="height:44px;padding:0 16px;border-radius:var(--r-sm);background:var(--accent);color:#0f1117;border:none;font-size:14px;font-weight:600;cursor:pointer">Add</button>
+    </div>
+
+    <h3>Freshness review</h3>
+    <div class="settings-row">
+      <i class="ti ti-clock"></i>
+      <span class="sr-label">Remind me every</span>
+      <select id="review-freq-sel" onchange="saveSettings()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r-sm);color:var(--text);font-family:inherit;font-size:13px;padding:4px 8px">
+        <option value="7">7 days</option>
+        <option value="14" selected>14 days</option>
+        <option value="30">30 days</option>
+      </select>
+    </div>
+
+    <h3>Data</h3>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn" onclick="exportData()"><i class="ti ti-download"></i> Export data as JSON</button>
+      <button class="btn" onclick="document.getElementById('import-file').click()"><i class="ti ti-upload"></i> Import from JSON</button>
+      <button class="btn btn-danger" onclick="clearAll()"><i class="ti ti-trash"></i> Clear all data</button>
+    </div>
+  </div>
+  <div style="height:24px"></div>
+</div>
+
+<!-- ═══ BOTTOM NAV ═══ -->
+<nav class="bottom-nav">
+  <button class="nav-item active" id="nav-inventory" onclick="showScreen('inventory')">
+    <i class="ti ti-archive"></i><span>Pantry</span>
+  </button>
+  <button class="nav-item" id="nav-grocery" onclick="showScreen('grocery')">
+    <i class="ti ti-shopping-cart"></i><span>Grocery</span>
+  </button>
+  <button class="nav-item" id="nav-settings" onclick="showScreen('settings')">
+    <i class="ti ti-settings"></i><span>Settings</span>
+  </button>
+</nav>
+
+<!-- FAB (inventory only) -->
+<button class="fab" id="fab" onclick="openAddItem()" aria-label="Add item">
+  <i class="ti ti-plus"></i>
+</button>
+
+<!-- ═══ ADD / EDIT ITEM SHEET ═══ -->
+<div class="sheet-overlay" id="sheet-item">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <h2 id="sheet-item-title">Add item</h2>
+      <button class="icon-btn" onclick="closeSheet('sheet-item')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="sheet-body">
+      <div class="form-group">
+        <label>Item name</label>
+        <input type="text" id="f-name" placeholder="e.g. Olive oil" autocomplete="off" autocorrect="off">
+      </div>
+      <div class="form-row2">
+        <div class="form-group">
+          <label>Location</label>
+          <select id="f-location"></select>
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <select id="f-category">
+            <option>Produce</option><option>Dairy</option><option>Meat & seafood</option>
+            <option>Grains & pasta</option><option>Canned goods</option><option>Condiments</option>
+            <option>Baking</option><option>Snacks</option><option>Beverages</option>
+            <option>Frozen</option><option>Spices & herbs</option><option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row2">
+        <div class="form-group">
+          <label>Quantity (optional)</label>
+          <input type="text" id="f-qty" placeholder="e.g. 2, half">
+        </div>
+        <div class="form-group">
+          <label>Unit (optional)</label>
+          <input type="text" id="f-unit" placeholder="lbs, oz, cans…">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <input type="text" id="f-notes" placeholder="e.g. opened, preferred brand">
+      </div>
+      <div class="toggle-row">
+        <input type="checkbox" id="f-has-expiry" onchange="toggleExpiryField()">
+        <label for="f-has-expiry">Track expiration date</label>
+      </div>
+      <div id="f-expiry-row" class="form-group" style="display:none">
+        <label>Expiration date</label>
+        <input type="date" id="f-expiry">
+      </div>
+      <div id="f-delete-btn" style="display:none;margin-top:8px">
+        <button class="btn btn-danger" onclick="deleteCurrentItem()"><i class="ti ti-trash"></i> Remove item</button>
+      </div>
+    </div>
+    <div class="sheet-footer">
+      <button class="btn" onclick="closeSheet('sheet-item')">Cancel</button>
+      <button class="btn btn-accent" onclick="saveItem()"><i class="ti ti-check"></i> Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SCAN SHEET ═══ -->
+<div class="sheet-overlay" id="sheet-scan">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <h2>Scan barcode</h2>
+      <button class="icon-btn" onclick="closeScan()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="sheet-body">
+      <div class="scan-area" id="scan-area">
+        <div class="scan-placeholder">
+          <i class="ti ti-barcode"></i>
+          <p>Camera will appear here</p>
+        </div>
+        <video id="scan-video" autoplay muted playsinline style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;inset:0"></video>
+      </div>
+      <div id="scan-status" style="font-size:13px;color:var(--text2);margin-bottom:12px;text-align:center"></div>
+      <div id="scan-form" style="display:none">
+        <div class="form-group">
+          <label>Product name</label>
+          <input type="text" id="scan-name">
+        </div>
+        <div class="form-group">
+          <label>Location</label>
+          <select id="scan-location"></select>
+        </div>
+      </div>
+    </div>
+    <div class="sheet-footer">
+      <button class="btn" id="scan-start-btn" onclick="startCamera()"><i class="ti ti-camera"></i> Start camera</button>
+      <button class="btn btn-accent" id="scan-save-btn" style="display:none" onclick="saveScanItem()"><i class="ti ti-check"></i> Add item</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ REVIEW SHEET ═══ -->
+<div class="sheet-overlay" id="sheet-review">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <h2>Freshness review</h2>
+      <button class="icon-btn" onclick="closeReview()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="sheet-body">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:14px">Check through your inventory — mark anything that's expired or run out.</p>
+      <div id="review-list-el"></div>
+    </div>
+    <div class="sheet-footer">
+      <button class="btn btn-accent" onclick="closeReview()"><i class="ti ti-check"></i> Done reviewing</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="import-file" accept=".json" style="display:none" onchange="handleImport(event)">
+
+<script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+<script>
+// ═══════════ STATE ═══════════
+const DEFAULT_LOCATIONS = ['Pantry','Fridge','Freezer','Spice rack','Wine/bar'];
+const LOC_ICONS = { Pantry:'ti-package', Fridge:'ti-snowflake', Freezer:'ti-cube', 'Spice rack':'ti-pepper', 'Wine/bar':'ti-bottle', Other:'ti-box' };
+const LOC_BADGE = { Pantry:'badge-pantry', Fridge:'badge-fridge', Freezer:'badge-freezer', 'Spice rack':'badge-spice', 'Wine/bar':'badge-wine' };
+const LOC_ICO = { Pantry:'ico-pantry', Fridge:'ico-fridge', Freezer:'ico-freezer', 'Spice rack':'ico-spice', 'Wine/bar':'ico-wine' };
+
+let S = {
+  items: [], groceryList: [], locations: [...DEFAULT_LOCATIONS],
+  activeLocation: 'All', settings: { reviewFrequencyDays: 14, lastReviewDate: null },
+  driveConnected: false, driveFileId: null
+};
+let editingId = null;
+let savedToken = null, tokenExpiry = 0;
+let driveSyncTimer = null;
+
+// ═══════════ PERSIST ═══════════
+function load() {
+  try { const d = localStorage.getItem('pantryapp2'); if (d) Object.assign(S, JSON.parse(d)); } catch(e) {}
+}
+function persist() {
+  try { localStorage.setItem('pantryapp2', JSON.stringify(S)); } catch(e) {}
+  if (S.driveConnected) { clearTimeout(driveSyncTimer); driveSyncTimer = setTimeout(syncDrive, 2500); }
+}
+function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2); }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ═══════════ SCREENS ═══════════
+function showScreen(name) {
+  ['inventory','grocery','settings'].forEach(s => {
+    document.getElementById('screen-'+s).classList.toggle('active', s===name);
+    document.getElementById('nav-'+s).classList.toggle('active', s===name);
+  });
+  document.getElementById('fab').style.display = name==='inventory' ? 'flex' : 'none';
+  if (name==='settings') { renderDriveSettings(); renderLocationSettings(); document.getElementById('review-freq-sel').value = S.settings.reviewFrequencyDays||14; }
+}
+
+// ═══════════ SHEETS ═══════════
+function openSheet(id) { document.getElementById(id).classList.add('open'); document.body.style.overflow='hidden'; }
+function closeSheet(id) { document.getElementById(id).classList.remove('open'); document.body.style.overflow=''; }
+
+// ═══════════ RENDER ALL ═══════════
+function renderAll() { renderStats(); renderLocTabs(); renderItems(); renderGroceryList(); checkReview(); updateDriveBar(); }
+
+// ═══════════ STATS ═══════════
+function renderStats() {
+  const total = S.items.length;
+  const soon = S.items.filter(i => { if(!i.expiry) return false; const d=(new Date(i.expiry)-new Date())/86400000; return d>0&&d<=7; }).length;
+  const expired = S.items.filter(i => i.expiry && new Date(i.expiry)<new Date()).length;
+  const gl = S.groceryList.filter(g=>!g.checked).length;
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat-pill"><div class="sn">${total}</div><div class="sl">Items</div></div>
+    <div class="stat-pill"><div class="sn" style="color:${gl?'#fbbf24':'#f0f2f7'}">${gl}</div><div class="sl">To buy</div></div>
+    <div class="stat-pill"><div class="sn" style="color:${soon?'#fbbf24':'#f0f2f7'}">${soon}</div><div class="sl">Expiring</div></div>
+    <div class="stat-pill"><div class="sn" style="color:${expired?'#f87171':'#f0f2f7'}">${expired}</div><div class="sl">Expired</div></div>`;
+}
+
+// ═══════════ LOC TABS ═══════════
+function renderLocTabs() {
+  const all = ['All', ...S.locations];
+  document.getElementById('loc-tabs').innerHTML = all.map(l =>
+    `<button class="loc-pill ${l===S.activeLocation?'active':''}" onclick="setLoc('${esc(l)}')">${esc(l)}</button>`).join('');
+}
+function setLoc(l) { S.activeLocation=l; renderLocTabs(); renderItems(); }
+
+// ═══════════ ITEMS ═══════════
+function locBadge(loc) { return LOC_BADGE[loc]||'badge-other'; }
+function locIco(loc) { return LOC_ICO[loc]||'ico-other'; }
+function locIcon(loc) { return LOC_ICONS[loc]||'ti-box'; }
+
+function expiryBadge(item) {
+  if (!item.expiry) return '';
+  const days = Math.ceil((new Date(item.expiry)-new Date())/86400000);
+  if (days<0) return `<span class="badge badge-exp-bad">Expired</span>`;
+  if (days<=3) return `<span class="badge badge-exp-soon">Exp ${days}d</span>`;
+  if (days<=7) return `<span class="badge badge-exp-soon">Exp ${days}d</span>`;
+  return `<span class="badge badge-exp-ok">Exp ${new Date(item.expiry).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>`;
+}
+
+function renderItems() {
+  const q = (document.getElementById('search-input').value||'').toLowerCase();
+  let items = S.items;
+  if (S.activeLocation!=='All') items = items.filter(i=>i.location===S.activeLocation);
+  if (q) items = items.filter(i=>(i.name||'').toLowerCase().includes(q)||(i.category||'').toLowerCase().includes(q));
+  items = [...items].sort((a,b)=>a.name.localeCompare(b.name));
+  const el = document.getElementById('item-list');
+  if (!items.length) {
+    el.innerHTML = `<div class="empty"><i class="ti ti-package"></i><p>${q?'No items match your search.':'This location is empty.\nTap + to add your first item.'}</p></div>`;
+    return;
+  }
+  el.innerHTML = items.map(item => {
+    const qty = item.qty ? `${item.qty}${item.unit?' '+item.unit:''}` : '';
+    return `<div class="item-row" onclick="editItem('${item.id}')">
+      <div class="item-icon ${locIco(item.location)}"><i class="ti ${locIcon(item.location)}"></i></div>
+      <div class="item-body">
+        <div class="item-name">${esc(item.name)}</div>
+        <div class="item-sub">
+          <span class="badge ${locBadge(item.location)}">${esc(item.location)}</span>
+          ${item.category?`<span>${esc(item.category)}</span>`:''}
+          ${qty?`<span style="font-family:'DM Mono',monospace;font-size:11px">${esc(qty)}</span>`:''}
+        </div>
+      </div>
+      <div class="item-right">
+        ${expiryBadge(item)}
+        ${item.notes?`<span style="font-size:11px;color:var(--text3)">${esc(item.notes)}</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════ ADD / EDIT ITEM ═══════════
+function fillLocationSelect(selId, current) {
+  const sel = document.getElementById(selId);
+  sel.innerHTML = S.locations.map(l=>`<option ${l===(current||S.locations[0])?'selected':''}>${esc(l)}</option>`).join('');
+}
+
+function openAddItem() {
+  editingId = null;
+  document.getElementById('sheet-item-title').textContent = 'Add item';
+  document.getElementById('f-name').value=''; document.getElementById('f-qty').value='';
+  document.getElementById('f-unit').value=''; document.getElementById('f-notes').value='';
+  document.getElementById('f-expiry').value=''; document.getElementById('f-has-expiry').checked=false;
+  document.getElementById('f-expiry-row').style.display='none';
+  document.getElementById('f-delete-btn').style.display='none';
+  fillLocationSelect('f-location');
+  openSheet('sheet-item');
+  setTimeout(()=>document.getElementById('f-name').focus(),300);
+}
+
+function editItem(id) {
+  const item = S.items.find(i=>i.id===id);
+  if (!item) return;
+  editingId = id;
+  document.getElementById('sheet-item-title').textContent = 'Edit item';
+  document.getElementById('f-name').value=item.name||'';
+  document.getElementById('f-qty').value=item.qty||'';
+  document.getElementById('f-unit').value=item.unit||'';
+  document.getElementById('f-notes').value=item.notes||'';
+  document.getElementById('f-expiry').value=item.expiry||'';
+  document.getElementById('f-has-expiry').checked=!!item.expiry;
+  document.getElementById('f-expiry-row').style.display=item.expiry?'block':'none';
+  document.getElementById('f-delete-btn').style.display='block';
+  fillLocationSelect('f-location', item.location);
+  document.getElementById('f-category').value=item.category||'Other';
+  openSheet('sheet-item');
+}
+
+function toggleExpiryField() {
+  document.getElementById('f-expiry-row').style.display=document.getElementById('f-has-expiry').checked?'block':'none';
+}
+
+function saveItem() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { toast('Enter an item name'); return; }
+  const item = {
+    id: editingId||uid(), name,
+    location: document.getElementById('f-location').value,
+    category: document.getElementById('f-category').value,
+    qty: document.getElementById('f-qty').value.trim(),
+    unit: document.getElementById('f-unit').value.trim(),
+    notes: document.getElementById('f-notes').value.trim(),
+    expiry: document.getElementById('f-has-expiry').checked ? document.getElementById('f-expiry').value : null,
+    addedAt: editingId ? (S.items.find(i=>i.id===editingId)||{}).addedAt : new Date().toISOString()
+  };
+  if (editingId) { const idx=S.items.findIndex(i=>i.id===editingId); if(idx>-1) S.items[idx]=item; }
+  else S.items.push(item);
+  closeSheet('sheet-item');
+  persist(); renderAll();
+  toast(editingId ? 'Item updated' : 'Item added');
+}
+
+function deleteCurrentItem() {
+  if (!editingId) return;
+  if (!confirm('Remove this item from your inventory?')) return;
+  S.items = S.items.filter(i=>i.id!==editingId);
+  closeSheet('sheet-item');
+  persist(); renderAll();
+  toast('Item removed');
+}
+
+// ═══════════ BARCODE SCAN ═══════════
+function openScan() {
+  fillLocationSelect('scan-location');
+  document.getElementById('scan-status').textContent='';
+  document.getElementById('scan-form').style.display='none';
+  document.getElementById('scan-save-btn').style.display='none';
+  document.getElementById('scan-start-btn').style.display='flex';
+  document.getElementById('scan-video').style.display='none';
+  document.querySelector('#scan-area .scan-placeholder').style.display='flex';
+  openSheet('sheet-scan');
+}
+
+function closeScan() {
+  try { Quagga.stop(); } catch(e) {}
+  document.getElementById('scan-video').style.display='none';
+  closeSheet('sheet-scan');
+}
+
+function startCamera() {
+  const video = document.getElementById('scan-video');
+  video.style.display='block';
+  document.querySelector('#scan-area .scan-placeholder').style.display='none';
+  document.getElementById('scan-status').textContent='Scanning…';
+  Quagga.init({
+    inputStream: { type:'LiveStream', target:video, constraints:{ facingMode:'environment' } },
+    decoder: { readers:['ean_reader','upc_reader','code_128_reader'] }
+  }, err => {
+    if (err) { document.getElementById('scan-status').textContent='Camera error: '+err.message; return; }
+    Quagga.start();
+  });
+  Quagga.onDetected(async res => {
+    const code = res.codeResult.code;
+    Quagga.stop(); video.style.display='none';
+    document.querySelector('#scan-area .scan-placeholder').style.display='flex';
+    document.getElementById('scan-status').textContent='Looking up '+code+'…';
+    const name = await lookupBarcode(code);
+    document.getElementById('scan-name').value = name||code;
+    document.getElementById('scan-form').style.display='block';
+    document.getElementById('scan-save-btn').style.display='flex';
+    document.getElementById('scan-start-btn').style.display='none';
+    document.getElementById('scan-status').textContent = name ? 'Found: '+name : 'Not found — edit name below.';
+  });
+}
+
+async function lookupBarcode(code) {
+  try {
+    const r = await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
+    const d = await r.json();
+    if (d.status===1 && d.product) return d.product.product_name||null;
+  } catch(e) {}
+  return null;
+}
+
+function saveScanItem() {
+  const name = document.getElementById('scan-name').value.trim();
+  if (!name) { toast('Enter a product name'); return; }
+  S.items.push({ id:uid(), name, location:document.getElementById('scan-location').value, category:'Other', qty:'', unit:'', notes:'', expiry:null, addedAt:new Date().toISOString() });
+  closeScan(); persist(); renderAll(); toast('Item added');
+}
+
+// ═══════════ GROCERY LIST ═══════════
+async function parseRecipe() {
+  const text = document.getElementById('recipe-input').value.trim();
+  if (!text) { toast('Paste a recipe first'); return; }
+  document.getElementById('ai-loader').style.display='flex';
+  document.getElementById('confirm-section').style.display='none';
+  try {
+    const invNames = S.items.map(i=>i.name.toLowerCase());
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514', max_tokens:1000,
+        messages:[{ role:'user', content:`Extract all ingredients from this recipe. Return ONLY a JSON array, no markdown, no explanation. Each object: {"name":"ingredient name lowercase","amount":"quantity+unit or empty string"}.\n\n${text}` }]
+      })
+    });
+    const data = await resp.json();
+    const raw = (data.content||[]).map(b=>b.text||'').join('');
+    let parsed = [];
+    try { parsed = JSON.parse(raw.replace(/```json|```/g,'').trim()); } catch(e) {}
+    if (!Array.isArray(parsed)||!parsed.length) throw new Error('Could not parse');
+    document.getElementById('ai-loader').style.display='none';
+    showConfirm(parsed, invNames);
+  } catch(e) {
+    document.getElementById('ai-loader').style.display='none';
+    toast('Could not parse recipe — try again');
+  }
+}
+
+let pendingIng = [];
+function showConfirm(parsed, invNames) {
+  pendingIng = parsed;
+  const el = document.getElementById('confirm-list');
+  el.innerHTML = parsed.map((ing,i) => {
+    const have = invNames.some(n=>n.includes(ing.name)||ing.name.includes(n));
+    return `<div class="confirm-row">
+      <input type="checkbox" id="ci-${i}" ${have?'':'checked'}>
+      <label for="ci-${i}">${esc(ing.name)}${ing.amount?` <span style="color:var(--text2);font-size:12px;font-family:'DM Mono',monospace">${esc(ing.amount)}</span>`:''}</label>
+      <span class="badge ${have?'badge-have':'badge-need'}">${have?'Have':'Need'}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('confirm-section').style.display='block';
+}
+
+function confirmIngredients() {
+  let added = 0;
+  pendingIng.forEach((ing,i) => {
+    const cb = document.getElementById('ci-'+i);
+    if (cb&&cb.checked && !S.groceryList.find(g=>g.name.toLowerCase()===ing.name.toLowerCase())) {
+      S.groceryList.push({ id:uid(), name:ing.name, amount:ing.amount||'', checked:false });
+      added++;
+    }
+  });
+  document.getElementById('confirm-section').style.display='none';
+  document.getElementById('recipe-input').value='';
+  persist(); renderAll();
+  toast(`${added} item${added!==1?'s':''} added to list`);
+}
+
+function cancelConfirm() { document.getElementById('confirm-section').style.display='none'; }
+
+function addManualGrocery() {
+  const val = document.getElementById('manual-grocery-input').value.trim();
+  if (!val) return;
+  S.groceryList.push({ id:uid(), name:val, amount:'', checked:false });
+  document.getElementById('manual-grocery-input').value='';
+  persist(); renderGroceryList(); renderStats();
+}
+
+function renderGroceryList() {
+  const el = document.getElementById('grocery-list');
+  const lbl = document.getElementById('grocery-section-label');
+  const invNames = S.items.map(i=>i.name.toLowerCase());
+  if (!S.groceryList.length) {
+    el.innerHTML='<div class="empty"><i class="ti ti-shopping-cart"></i><p>Your list is empty.\nPaste a recipe or add items above.</p></div>';
+    lbl.style.display='none'; return;
+  }
+  lbl.style.display='block';
+  const sorted = [...S.groceryList].sort((a,b)=>a.checked-b.checked);
+  el.innerHTML = sorted.map(g => {
+    const have = invNames.some(n=>n.includes(g.name.toLowerCase())||g.name.toLowerCase().includes(n));
+    return `<div class="grocery-row ${g.checked?'checked':''}">
+      <input type="checkbox" ${g.checked?'checked':''} onchange="toggleGrocery('${g.id}')">
+      <span class="gr-name">${esc(g.name)}</span>
+      ${g.amount?`<span class="gr-amt">${esc(g.amount)}</span>`:''}
+      ${have&&!g.checked?`<span class="badge badge-have" style="font-size:10px">Have</span>`:''}
+      <button class="icon-btn" style="width:32px;height:32px;flex-shrink:0" onclick="removeGrocery('${g.id}')" aria-label="Remove"><i class="ti ti-x" style="font-size:15px"></i></button>
+    </div>`;
+  }).join('');
+}
+
+function toggleGrocery(id) {
+  const g = S.groceryList.find(g=>g.id===id);
+  if (g) g.checked=!g.checked;
+  persist(); renderGroceryList(); renderStats();
+}
+
+function removeGrocery(id) {
+  S.groceryList = S.groceryList.filter(g=>g.id!==id);
+  persist(); renderGroceryList(); renderStats();
+}
+
+function clearCheckedGrocery() {
+  const n = S.groceryList.filter(g=>g.checked).length;
+  if (!n) { toast('No checked items'); return; }
+  S.groceryList = S.groceryList.filter(g=>!g.checked);
+  persist(); renderGroceryList(); renderStats();
+  toast(`${n} item${n!==1?'s':''} cleared`);
+}
+
+// ═══════════ FRESHNESS REVIEW ═══════════
+function checkReview() {
+  const freq = (S.settings.reviewFrequencyDays||14)*86400000;
+  const last = S.settings.lastReviewDate ? new Date(S.settings.lastReviewDate).getTime() : 0;
+  document.getElementById('review-banner-el').style.display = (Date.now()-last)>=freq ? 'block' : 'none';
+}
+
+function openReview() {
+  const el = document.getElementById('review-list-el');
+  el.innerHTML = S.items.map(item=>`
+    <div class="review-item" id="ri-${item.id}">
+      <div class="ri-body">
+        <div class="ri-name">${esc(item.name)}</div>
+        <div class="ri-sub">${esc(item.location)}${expiryBadge(item)?` · ${item.expiry?new Date(item.expiry).toLocaleDateString('en-US',{month:'short',day:'numeric'}):''}`:''}</div>
+      </div>
+      <div class="ri-actions">
+        <button class="mini-btn ok" onclick="markGood('${item.id}')">✓ Good</button>
+        <button class="mini-btn del" onclick="removeFromReview('${item.id}')">Remove</button>
+      </div>
+    </div>`).join('')||'<div class="empty" style="padding:1rem"><p>No items to review.</p></div>';
+  openSheet('sheet-review');
+}
+
+function markGood(id) { document.getElementById('ri-'+id).remove(); }
+function removeFromReview(id) {
+  S.items = S.items.filter(i=>i.id!==id);
+  document.getElementById('ri-'+id).remove();
+  persist(); renderAll();
+}
+
+function closeReview() {
+  S.settings.lastReviewDate = new Date().toISOString();
+  closeSheet('sheet-review');
+  checkReview(); persist(); renderStats();
+}
+
+// ═══════════ SETTINGS ═══════════
+function saveSettings() {
+  S.settings.reviewFrequencyDays = parseInt(document.getElementById('review-freq-sel').value);
+  persist();
+}
+
+function renderLocationSettings() {
+  const el = document.getElementById('location-settings-list');
+  el.innerHTML = S.locations.map(l=>`
+    <div class="loc-edit-row">
+      <span class="badge ${locBadge(l)}">${esc(l)}</span>
+      <span class="loc-count">${S.items.filter(i=>i.location===l).length} items</span>
+      ${S.locations.length>1?`<button class="icon-btn" style="width:32px;height:32px" onclick="removeLoc('${esc(l)}')" aria-label="Remove ${l}"><i class="ti ti-trash" style="font-size:15px;color:var(--danger)"></i></button>`:''}
+    </div>`).join('');
+}
+
+function addCustomLocation() {
+  const val = document.getElementById('new-loc-input').value.trim();
+  if (!val||S.locations.includes(val)) { toast(val?'Location already exists':'Enter a name'); return; }
+  S.locations.push(val);
+  document.getElementById('new-loc-input').value='';
+  persist(); renderAll(); renderLocationSettings();
+  toast('Location added');
+}
+
+function removeLoc(loc) {
+  const cnt = S.items.filter(i=>i.location===loc).length;
+  const msg = cnt ? `"${loc}" has ${cnt} item${cnt>1?'s':''}. Remove location and move items to ${S.locations[0]}?` : `Remove "${loc}"?`;
+  if (!confirm(msg)) return;
+  S.items.forEach(i=>{ if(i.location===loc) i.location=S.locations[0]; });
+  S.locations = S.locations.filter(l=>l!==loc);
+  if (S.activeLocation===loc) S.activeLocation='All';
+  persist(); renderAll(); renderLocationSettings();
+}
+
+// ═══════════ GOOGLE DRIVE ═══════════
+function updateDriveBar() {
+  const bar = document.getElementById('drive-bar-el');
+  if (!S.driveConnected) { bar.style.display='none'; return; }
+  bar.style.display='flex';
+}
+
+function setDriveStatus(s) {
+  const dot=document.getElementById('drive-dot'), txt=document.getElementById('drive-text');
+  if (!dot) return;
+  if (s==='ok') { dot.className='drive-dot dot-ok'; txt.textContent='Synced to Drive'; }
+  else if (s==='sync') { dot.className='drive-dot dot-sync'; txt.textContent='Syncing…'; }
+  else { dot.className='drive-dot dot-err'; txt.textContent='Sync error'; }
+}
+
+function renderDriveSettings() {
+  const el = document.getElementById('drive-settings-ui');
+  if (S.driveConnected) {
+    el.innerHTML=`<div class="settings-row">
+      <i class="ti ti-brand-google-drive" style="color:var(--accent)"></i>
+      <span class="sr-label">Connected</span>
+      <button onclick="disconnectDrive()" style="font-size:12px;padding:6px 12px;border-radius:var(--r-sm);background:var(--bg4);border:1px solid var(--border2);color:var(--danger);cursor:pointer">Disconnect</button>
+    </div>`;
+  } else {
+    el.innerHTML=`<button class="btn btn-accent" onclick="connectDrive()" style="margin-bottom:8px"><i class="ti ti-brand-google-drive"></i> Connect Google Drive</button>
+    <p style="font-size:12px;color:var(--text3);line-height:1.5">Store your inventory in your Google Drive so it's available on every device.</p>`;
+  }
+}
+
+async function getGToken() {
+  if (savedToken && Date.now()<tokenExpiry) return savedToken;
+  return new Promise(res => {
+    if (!window.google?.accounts) { toast('Google API unavailable'); return res(null); }
+    google.accounts.oauth2.initTokenClient({
+      client_id:'681321086812-q9e4m8t6h2h0h0kjmh5bn8b3m8e0hk0n.apps.googleusercontent.com',
+      scope:'https://www.googleapis.com/auth/drive.file',
+      callback: r => { if(r.error){toast('Sign-in failed');res(null);}else{savedToken=r.access_token;tokenExpiry=Date.now()+3500000;res(r.access_token);} }
+    }).requestAccessToken();
+  });
+}
+
+async function connectDrive() {
+  const tok = await getGToken(); if (!tok) return;
+  S.driveConnected=true; updateDriveBar(); renderDriveSettings();
+  await ensureDriveFile(tok); await loadFromDrive(tok); renderAll(); persist();
+}
+
+function disconnectDrive() {
+  if(!confirm('Disconnect Drive? Data stays locally.')) return;
+  S.driveConnected=false; S.driveFileId=null; persist(); updateDriveBar(); renderDriveSettings();
+}
+
+async function ensureDriveFile(tok) {
+  if (S.driveFileId) return;
+  const s = await (await fetch(`https://www.googleapis.com/drive/v3/files?q=name='pantry-inventory.json'+and+trashed=false&fields=files(id)`,{headers:{Authorization:'Bearer '+tok}})).json();
+  if (s.files?.length) { S.driveFileId=s.files[0].id; persist(); return; }
+  const fm=new FormData();
+  fm.append('metadata',new Blob([JSON.stringify({name:'pantry-inventory.json',mimeType:'application/json'})],{type:'application/json'}));
+  fm.append('file',new Blob([JSON.stringify({items:[],groceryList:[],locations:S.locations,settings:S.settings})],{type:'application/json'}));
+  const c=await (await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{method:'POST',headers:{Authorization:'Bearer '+tok},body:fm})).json();
+  S.driveFileId=c.id; persist();
+}
+
+async function loadFromDrive(tok) {
+  if (!S.driveFileId) return;
+  setDriveStatus('sync');
+  try {
+    const r=await fetch(`https://www.googleapis.com/drive/v3/files/${S.driveFileId}?alt=media`,{headers:{Authorization:'Bearer '+tok}});
+    if (r.ok) { const d=await r.json(); if(d.items)S.items=d.items; if(d.groceryList)S.groceryList=d.groceryList; if(d.locations)S.locations=d.locations; if(d.settings)S.settings=d.settings; }
+    setDriveStatus('ok');
+  } catch(e) { setDriveStatus('err'); }
+}
+
+async function syncDrive() {
+  if (!S.driveConnected||!S.driveFileId) return;
+  setDriveStatus('sync');
+  try {
+    const tok=await getGToken(); if(!tok){setDriveStatus('err');return;}
+    await fetch(`https://www.googleapis.com/upload/drive/v3/files/${S.driveFileId}?uploadType=media`,
+      {method:'PATCH',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({items:S.items,groceryList:S.groceryList,locations:S.locations,settings:S.settings})});
+    setDriveStatus('ok');
+  } catch(e) { setDriveStatus('err'); }
+}
+
+// ═══════════ TOAST ═══════════
+function toast(msg) {
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2200);
+}
+
+// ═══════════ DATA ═══════════
+function exportData() {
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}));
+  a.download='pantry-backup.json'; a.click();
+}
+function handleImport(e) {
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.items)S.items=d.items;if(d.groceryList)S.groceryList=d.groceryList;if(d.locations)S.locations=d.locations;if(d.settings)S.settings=d.settings;persist();renderAll();toast('Import successful');}catch(e){toast('Invalid file');}};
+  r.readAsText(f);
+}
+function clearAll() {
+  if(!confirm('Clear all data? Cannot be undone.'))return;
+  S.items=[];S.groceryList=[];persist();renderAll();toast('All data cleared');
+}
+
+// ═══════════ INIT ═══════════
+load();
+updateDriveBar();
+renderAll();
+</script>
+<script src="https://accounts.google.com/gsi/client" async></script>
+</body>
+</html>
