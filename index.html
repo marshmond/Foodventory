@@ -744,48 +744,50 @@ function stopCamera() {
 async function startCamera() {
   const video = document.getElementById('scan-video');
   const status = document.getElementById('scan-status');
-
   if (!window.ZXing) { status.textContent = 'Scanner library not loaded.'; return; }
-
   status.textContent = 'Requesting camera…';
-
   try {
-    // Explicitly request camera first so browser shows permission dialog
+    // Trigger native iOS permission prompt before ZXing touches anything
     const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-    stream.getTracks().forEach(t => t.stop()); // release it; ZXing will re-acquire
+    stream.getTracks().forEach(t => t.stop());
 
+    // Show video, hide idle placeholder
     document.getElementById('scan-idle').style.display = 'none';
     video.style.display = 'block';
     status.textContent = 'Point camera at a barcode…';
 
     zxingReader = new ZXing.BrowserMultiFormatReader();
-
-    // Use constraints directly rather than enumerating devices (more reliable on iOS)
     await zxingReader.decodeFromConstraints(
       { video: { facingMode: 'environment' } },
       video,
       async (result, err) => {
-        if (result) {
-          const code = result.getText();
-          stopCamera();
-          status.textContent = 'Found — looking up product…';
-          const name = await lookupBarcode(code);
-          document.getElementById('scan-name').value = name || code;
-          document.getElementById('scan-form').style.display = 'block';
-          document.getElementById('scan-save-btn').style.display = 'flex';
-          document.getElementById('scan-start-btn').style.display = 'none';
-          status.textContent = name ? '✓ ' + name : 'Not found — edit name below.';
-        }
-        // NotFoundException fires constantly while scanning — safely ignore
+        if (!result) return; // NotFoundException fires constantly — ignore
+        const code = result.getText();
+        // Stop scanning but keep video visible until lookup completes
+        if (zxingReader) { try { zxingReader.reset(); } catch(e) {} zxingReader = null; }
+        status.textContent = 'Found barcode — looking up…';
+        const name = await lookupBarcode(code);
+        // Now hide video and show result form
+        video.style.display = 'none';
+        document.getElementById('scan-idle').style.display = 'flex';
+        document.getElementById('scan-name').value = name || code;
+        document.getElementById('scan-form').style.display = 'block';
+        document.getElementById('scan-save-btn').style.display = 'flex';
+        document.getElementById('scan-start-btn').style.display = 'none';
+        status.textContent = name ? '✓ ' + name : 'Not found — edit name below.';
       }
     );
   } catch(e) {
     status.textContent = 'Camera error: ' + (e.message || e);
+    stopCamera();
+  }
+}
+
 async function lookupBarcode(code) {
   try {
     const r = await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
     const d = await r.json();
-    if (d.status===1 && d.product) return d.product.product_name||null;
+    if (d.status === 1 && d.product) return d.product.product_name || null;
   } catch(e) {}
   return null;
 }
