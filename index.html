@@ -836,26 +836,39 @@ async function parseRecipe() {
       body: JSON.stringify(body)
     });
     const data = await resp.json();
+    console.log('API response:', JSON.stringify(data, null, 2));
 
-    // Extract text blocks from response (skip tool_use blocks)
+    // Check for API-level errors
+    if (data.error) throw new Error('API error: ' + data.error.message);
+
+    // Extract text blocks from response (skip tool_use/tool_result blocks)
     const raw = (data.content || [])
       .filter(b => b.type === 'text')
       .map(b => b.text || '')
       .join('');
 
+    console.log('Raw text from API:', raw);
+
     let parsed = [];
-    // Pull out JSON array even if there's surrounding text
     const match = raw.match(/\[[\s\S]*\]/);
     if (match) {
-      try { parsed = JSON.parse(match[0]); } catch(e) {}
+      try { parsed = JSON.parse(match[0]); } catch(e) { console.log('JSON parse error:', e); }
     }
-    if (!Array.isArray(parsed) || !parsed.length) throw new Error('No ingredients found');
+
+    if (!Array.isArray(parsed) || !parsed.length) {
+      // Show the raw response so we can see what went wrong
+      document.getElementById('ai-loader').style.display='none';
+      document.getElementById('scan-status') && (document.getElementById('scan-status').textContent = '');
+      alert('Debug — API returned:\n\n' + (raw || JSON.stringify(data).slice(0, 400)));
+      return;
+    }
 
     document.getElementById('ai-loader').style.display='none';
     showConfirm(parsed, invNames);
   } catch(e) {
+    console.error('parseRecipe error:', e);
     document.getElementById('ai-loader').style.display='none';
-    toast('Could not parse — check the URL or try pasting the text directly');
+    alert('Error: ' + e.message);
   }
 }
 
