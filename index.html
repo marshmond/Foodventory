@@ -324,7 +324,8 @@ body {
   </div>
 
   <div style="padding:12px 16px">
-    <textarea class="recipe-input" id="recipe-input" placeholder="Paste a recipe here — the AI will pull out the ingredients and check what you already have…"></textarea>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:6px">Paste a recipe URL or the recipe text itself</div>
+    <textarea class="recipe-input" id="recipe-input" placeholder="https://www.seriouseats.com/recipe… or paste recipe text directly"></textarea>
     <button class="btn btn-accent" style="margin-top:8px;width:100%" onclick="parseRecipe()">
       <i class="ti ti-sparkles"></i> Parse recipe with AI
     </button>
@@ -800,30 +801,61 @@ function saveScanItem() {
 }
 
 // ═══════════ GROCERY LIST ═══════════
+function isUrl(str) {
+  return /^https?:\/\//i.test(str.trim());
+}
+
 async function parseRecipe() {
-  const text = document.getElementById('recipe-input').value.trim();
-  if (!text) { toast('Paste a recipe first'); return; }
+  const input = document.getElementById('recipe-input').value.trim();
+  if (!input) { toast('Paste a recipe or URL first'); return; }
   document.getElementById('ai-loader').style.display='flex';
   document.getElementById('confirm-section').style.display='none';
+
+  const invNames = S.items.map(i=>i.name.toLowerCase());
+  const usingUrl = isUrl(input);
+
+  const prompt = usingUrl
+    ? `Fetch the recipe at this URL and extract all ingredients from it. Return ONLY a JSON array, no markdown, no explanation. Each object: {"name":"ingredient name lowercase, no brand names","amount":"quantity+unit or empty string"}. URL: ${input}`
+    : `Extract all ingredients from this recipe text. Return ONLY a JSON array, no markdown, no explanation. Each object: {"name":"ingredient name lowercase, no brand names","amount":"quantity+unit or empty string"}.\n\n${input}`;
+
+  const body = {
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 1000,
+    messages: [{ role: 'user', content: prompt }]
+  };
+
+  // If it's a URL, enable web search so the AI can fetch the page
+  if (usingUrl) {
+    body.tools = [{ type: 'web_search_20250305', name: 'web_search' }];
+  }
+
   try {
-    const invNames = S.items.map(i=>i.name.toLowerCase());
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model:'claude-sonnet-4-20250514', max_tokens:1000,
-        messages:[{ role:'user', content:`Extract all ingredients from this recipe. Return ONLY a JSON array, no markdown, no explanation. Each object: {"name":"ingredient name lowercase","amount":"quantity+unit or empty string"}.\n\n${text}` }]
-      })
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
     });
     const data = await resp.json();
-    const raw = (data.content||[]).map(b=>b.text||'').join('');
+
+    // Extract text blocks from response (skip tool_use blocks)
+    const raw = (data.content || [])
+      .filter(b => b.type === 'text')
+      .map(b => b.text || '')
+      .join('');
+
     let parsed = [];
-    try { parsed = JSON.parse(raw.replace(/```json|```/g,'').trim()); } catch(e) {}
-    if (!Array.isArray(parsed)||!parsed.length) throw new Error('Could not parse');
+    // Pull out JSON array even if there's surrounding text
+    const match = raw.match(/\[[\s\S]*\]/);
+    if (match) {
+      try { parsed = JSON.parse(match[0]); } catch(e) {}
+    }
+    if (!Array.isArray(parsed) || !parsed.length) throw new Error('No ingredients found');
+
     document.getElementById('ai-loader').style.display='none';
     showConfirm(parsed, invNames);
   } catch(e) {
     document.getElementById('ai-loader').style.display='none';
-    toast('Could not parse recipe — try again');
+    toast('Could not parse — check the URL or try pasting the text directly');
   }
 }
 
