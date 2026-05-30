@@ -1013,7 +1013,7 @@ async function getGToken() {
   return new Promise(res => {
     if (!window.google?.accounts) { toast('Google API unavailable'); return res(null); }
     google.accounts.oauth2.initTokenClient({
-      client_id:'681321086812-q9e4m8t6h2h0h0kjmh5bn8b3m8e0hk0n.apps.googleusercontent.com',
+      client_id:'134675795671-dep1sctcma5it42odiqb4aupclnek964.apps.googleusercontent.com',
       scope:'https://www.googleapis.com/auth/drive.file',
       callback: r => { if(r.error){toast('Sign-in failed');res(null);}else{savedToken=r.access_token;tokenExpiry=Date.now()+3500000;res(r.access_token);} }
     }).requestAccessToken();
