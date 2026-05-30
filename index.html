@@ -245,8 +245,8 @@ body {
 
 /* SCAN AREA */
 .scan-area { background: var(--bg3); border-radius: var(--r-md); overflow: hidden; aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center; margin-bottom: 14px; position: relative; }
-.scan-area video { width: 100%; height: 100%; object-fit: cover; }
-.scan-placeholder { display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--text3); }
+.scan-area video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2; }
+.scan-placeholder { display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--text3); position: relative; z-index: 1; }
 .scan-placeholder i { font-size: 52px; }
 .scan-placeholder p { font-size: 13px; }
 
