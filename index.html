@@ -483,13 +483,11 @@ body {
       <button class="icon-btn" onclick="closeScan()"><i class="ti ti-x"></i></button>
     </div>
     <div class="sheet-body">
-      <div class="scan-area" id="scan-area">
-        <div class="scan-placeholder">
-          <i class="ti ti-barcode"></i>
-          <p>Camera will appear here</p>
-        </div>
-        <video id="scan-video" autoplay muted playsinline style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;inset:0"></video>
+      <div id="scan-idle" style="background:var(--bg3);border-radius:var(--r-md);aspect-ratio:4/3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--text3);margin-bottom:14px">
+        <i class="ti ti-barcode" style="font-size:52px"></i>
+        <p style="font-size:13px">Tap Start camera below</p>
       </div>
+      <video id="scan-video" autoplay muted playsinline style="display:none;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:var(--r-md);margin-bottom:14px;background:#000"></video>
       <div id="scan-status" style="font-size:13px;color:var(--text2);margin-bottom:12px;text-align:center"></div>
       <div id="scan-form" style="display:none">
         <div class="form-group">
@@ -715,12 +713,12 @@ let zxingReader = null;
 
 function openScan() {
   fillLocationSelect('scan-location');
-  document.getElementById('scan-status').textContent='';
-  document.getElementById('scan-form').style.display='none';
-  document.getElementById('scan-save-btn').style.display='none';
-  document.getElementById('scan-start-btn').style.display='flex';
-  document.getElementById('scan-video').style.display='none';
-  document.querySelector('#scan-area .scan-placeholder').style.display='flex';
+  document.getElementById('scan-status').textContent = '';
+  document.getElementById('scan-form').style.display = 'none';
+  document.getElementById('scan-save-btn').style.display = 'none';
+  document.getElementById('scan-start-btn').style.display = 'flex';
+  document.getElementById('scan-video').style.display = 'none';
+  document.getElementById('scan-idle').style.display = 'flex';
   openSheet('sheet-scan');
 }
 
@@ -740,48 +738,49 @@ function stopCamera() {
     video.srcObject = null;
   }
   video.style.display = 'none';
-  document.querySelector('#scan-area .scan-placeholder').style.display = 'flex';
+  document.getElementById('scan-idle').style.display = 'flex';
 }
 
 async function startCamera() {
   const video = document.getElementById('scan-video');
   const status = document.getElementById('scan-status');
 
-  if (!window.ZXing) { status.textContent = 'Scanner library not loaded — check your connection.'; return; }
+  if (!window.ZXing) { status.textContent = 'Scanner library not loaded.'; return; }
 
-  video.style.display = 'block';
-  document.querySelector('#scan-area .scan-placeholder').style.display = 'none';
-  status.textContent = 'Starting camera…';
+  status.textContent = 'Requesting camera…';
 
   try {
-    zxingReader = new ZXing.BrowserMultiFormatReader();
-    const devices = await ZXing.BrowserCodeReader.listVideoInputDevices();
-    // prefer rear camera
-    const device = devices.find(d => /back|rear|environment/i.test(d.label)) || devices[devices.length - 1];
-    const deviceId = device ? device.deviceId : undefined;
+    // Explicitly request camera first so browser shows permission dialog
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    stream.getTracks().forEach(t => t.stop()); // release it; ZXing will re-acquire
 
+    document.getElementById('scan-idle').style.display = 'none';
+    video.style.display = 'block';
     status.textContent = 'Point camera at a barcode…';
 
-    await zxingReader.decodeFromVideoDevice(deviceId, video, async (result, err) => {
-      if (result) {
-        const code = result.getText();
-        stopCamera();
-        status.textContent = 'Found barcode — looking up product…';
-        const name = await lookupBarcode(code);
-        document.getElementById('scan-name').value = name || code;
-        document.getElementById('scan-form').style.display = 'block';
-        document.getElementById('scan-save-btn').style.display = 'flex';
-        document.getElementById('scan-start-btn').style.display = 'none';
-        status.textContent = name ? '✓ Found: ' + name : 'Product not found — edit the name below.';
+    zxingReader = new ZXing.BrowserMultiFormatReader();
+
+    // Use constraints directly rather than enumerating devices (more reliable on iOS)
+    await zxingReader.decodeFromConstraints(
+      { video: { facingMode: 'environment' } },
+      video,
+      async (result, err) => {
+        if (result) {
+          const code = result.getText();
+          stopCamera();
+          status.textContent = 'Found — looking up product…';
+          const name = await lookupBarcode(code);
+          document.getElementById('scan-name').value = name || code;
+          document.getElementById('scan-form').style.display = 'block';
+          document.getElementById('scan-save-btn').style.display = 'flex';
+          document.getElementById('scan-start-btn').style.display = 'none';
+          status.textContent = name ? '✓ ' + name : 'Not found — edit name below.';
+        }
+        // NotFoundException fires constantly while scanning — safely ignore
       }
-      // err is thrown continuously while no barcode detected — ignore those
-    });
+    );
   } catch(e) {
     status.textContent = 'Camera error: ' + (e.message || e);
-    stopCamera();
-  }
-}
-
 async function lookupBarcode(code) {
   try {
     const r = await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
