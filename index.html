@@ -972,31 +972,51 @@ function isUrl(str) {
   return /^https?:\/\//i.test(str.trim());
 }
 
-function setLoaderText(msg) {
-  const el = document.getElementById('ai-loader');
-  const p = el.querySelector('span') || el;
-  if (el.querySelector('span')) el.querySelector('span').textContent = msg;
+async function fetchRecipeText(url) {
+  // Strategy 1: Try recipe-specific structured data via allorigins
+  // Many recipe sites embed JSON-LD structured data in their HTML which IS in the static HTML
+  const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+  const resp = await fetch(proxy);
+  const data = await resp.json();
+  if (!data.contents) throw new Error('Could not fetch page');
+
+  const html = data.contents;
+
+  // Extract JSON-LD structured data (recipe sites almost always have this)
+  const jsonLdMatches = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi) || [];
+  for (const block of jsonLdMatches) {
+    try {
+      const json = JSON.parse(block.replace(/<script[^>]*>/, '').replace(/<\/script>/, '').trim());
+      const recipes = Array.isArray(json) ? json : [json];
+      for (const item of recipes) {
+        const recipe = item['@type'] === 'Recipe' ? item : (item['@graph'] || []).find(n => n['@type'] === 'Recipe');
+        if (recipe && recipe.recipeIngredient && recipe.recipeIngredient.length) {
+          // Got clean ingredient list directly from structured data
+          return 'INGREDIENTS:\n' + recipe.recipeIngredient.join('\n');
+        }
+      }
+    } catch(e) {}
+  }
+
+  // Strategy 2: Strip HTML and send raw text — works for simpler sites
+  const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  return text.slice(0, 8000);
 }
 
-async function callAPI(messages, useSearch) {
-  const body = {
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 2000,
-    messages
-  };
-  if (useSearch) {
-    body.tools = [{ type: 'web_search_20250305', name: 'web_search' }];
-  }
+async function callClaude(userContent) {
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2000,
+      messages: [{ role: 'user', content: userContent }]
+    })
   });
   return resp.json();
 }
 
 function extractIngredientJSON(text) {
-  // Try to find a JSON array anywhere in the text
   const match = text.match(/\[[\s\S]*?\]/);
   if (!match) return null;
   try { return JSON.parse(match[0]); } catch(e) { return null; }
@@ -1013,60 +1033,36 @@ async function parseRecipe() {
 
   const invNames = S.items.map(i => i.name.toLowerCase());
   const usingUrl = isUrl(input);
-
-  const systemPrompt = `You are a recipe ingredient extractor. Your only job is to return a JSON array of ingredients. Always return ONLY a valid JSON array with no markdown fences, no explanation, no preamble. Each element: {"name":"ingredient name in lowercase","amount":"quantity and unit, e.g. 2 cups, or empty string if unknown"}.`;
-
-  const userPrompt = usingUrl
-    ? `Search for and read the recipe at this URL, then extract every ingredient. Return ONLY the JSON array.\n\nURL: ${input}`
-    : `Extract every ingredient from this recipe. Return ONLY the JSON array.\n\n${input}`;
+  const jsonInstruction = `Return ONLY a valid JSON array, no markdown, no explanation. Each element: {"name":"ingredient name lowercase","amount":"quantity and unit e.g. 2 cups, or empty string"}.`;
 
   try {
-    // First API call
-    let messages = [{ role: 'user', content: userPrompt }];
-    let data = await callAPI([{ role: 'user', content: userPrompt }], usingUrl);
+    let recipeText = input;
+
+    if (usingUrl) {
+      loaderEl.querySelector('span').textContent = 'Fetching page…';
+      try {
+        recipeText = await fetchRecipeText(input);
+        alert('DEBUG — fetched text (first 600 chars):\n\n' + recipeText.slice(0, 600));
+      } catch(e) {
+        alert('DEBUG — fetch failed: ' + e.message);
+        recipeText = `Recipe from this URL: ${input}`;
+      }
+    }
+
+    loaderEl.querySelector('span').textContent = 'Extracting ingredients…';
+
+    const prompt = `Extract every ingredient from this recipe. ${jsonInstruction}\n\n${recipeText}`;
+    const data = await callClaude(prompt);
 
     if (data.error) throw new Error(data.error.message);
 
-    // If web search was used, the model may have stopped mid-flow with tool_use blocks.
-    // We need to keep passing results back until stop_reason is 'end_turn'.
-    let rounds = 0;
-    while (data.stop_reason === 'tool_use' && rounds < 5) {
-      rounds++;
-      loaderEl.querySelector('span').textContent = 'Searching the web…';
-
-      // Append assistant message and tool results to conversation
-      messages.push({ role: 'assistant', content: data.content });
-
-      // Build tool_result blocks for every tool_use block
-      const toolResults = data.content
-        .filter(b => b.type === 'tool_use')
-        .map(b => ({
-          type: 'tool_result',
-          tool_use_id: b.id,
-          content: '' // web_search handles its own execution server-side; empty content continues the loop
-        }));
-
-      messages.push({ role: 'user', content: toolResults });
-      data = await callAPI(messages, true);
-      if (data.error) throw new Error(data.error.message);
-    }
-
-    // Extract text from final response
-    const raw = (data.content || [])
-      .filter(b => b.type === 'text')
-      .map(b => b.text || '')
-      .join('');
-
-    loaderEl.querySelector('span').textContent = 'Parsing ingredients…';
-
+    const raw = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
     let parsed = extractIngredientJSON(raw);
 
-    // If still no luck, make one more focused call asking just for the JSON
+    // Fallback: ask more explicitly if first pass didn't return clean JSON
     if (!parsed || !parsed.length) {
-      loaderEl.querySelector('span').textContent = 'Extracting ingredients…';
-      const retry = await callAPI([
-        { role: 'user', content: `${systemPrompt}\n\nFrom this content, extract all ingredients as a JSON array:\n\n${raw || input}` }
-      ], false);
+      loaderEl.querySelector('span').textContent = 'Retrying…';
+      const retry = await callClaude(`From the text below, list every cooking ingredient. ${jsonInstruction}\n\n${recipeText.slice(0, 4000)}`);
       if (!retry.error) {
         const retryRaw = (retry.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
         parsed = extractIngredientJSON(retryRaw);
@@ -1076,7 +1072,7 @@ async function parseRecipe() {
     loaderEl.style.display = 'none';
 
     if (!parsed || !parsed.length) {
-      toast('No ingredients found — try pasting the text directly');
+      toast('No ingredients found — try pasting the recipe text directly');
       return;
     }
 
@@ -1084,7 +1080,7 @@ async function parseRecipe() {
 
   } catch(e) {
     loaderEl.style.display = 'none';
-    toast('Error: ' + (e.message || 'Unknown error'));
+    toast('Error: ' + (e.message || 'Unknown — check connection'));
     console.error('parseRecipe:', e);
   }
 }
