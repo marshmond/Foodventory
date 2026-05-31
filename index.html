@@ -1039,19 +1039,17 @@ async function parseRecipe() {
     let recipeText = input;
 
     if (usingUrl) {
-      loaderEl.querySelector('span').textContent = 'Fetching page…';
-      try {
-        recipeText = await fetchRecipeText(input);
-        alert('DEBUG — fetched text (first 600 chars):\n\n' + recipeText.slice(0, 600));
-      } catch(e) {
-        alert('DEBUG — fetch failed: ' + e.message);
-        recipeText = `Recipe from this URL: ${input}`;
-      }
+      loaderEl.querySelector('span').textContent = 'Looking up recipe…';
+      // Skip proxy fetching — recipe sites block CORS proxies.
+      // Instead ask Claude directly; it knows most major recipe sites from training.
+      recipeText = `Please look up the recipe at this URL and extract its ingredients. If you know this recipe from your training data, use that. URL: ${input}`;
     }
 
     loaderEl.querySelector('span').textContent = 'Extracting ingredients…';
 
-    const prompt = `Extract every ingredient from this recipe. ${jsonInstruction}\n\n${recipeText}`;
+    const prompt = usingUrl
+      ? `${recipeText}\n\nReturn ONLY a valid JSON array of ingredients, no markdown, no explanation. Each element: {"name":"ingredient name lowercase","amount":"quantity and unit e.g. 2 cups, or empty string"}.`
+      : `Extract every ingredient from this recipe. Return ONLY a valid JSON array, no markdown, no explanation. Each element: {"name":"ingredient name lowercase","amount":"quantity and unit e.g. 2 cups, or empty string"}.\n\n${recipeText}`;
     const data = await callClaude(prompt);
 
     if (data.error) throw new Error(data.error.message);
